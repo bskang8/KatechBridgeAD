@@ -15,13 +15,7 @@ End-to-end autonomous driving unifies tasks in a differentiable framework, enabl
 
 ## ⭐ Qualitative Results
 
-### Open-loop planning
-
 https://github.com/user-attachments/assets/2abbe46c-5fe7-4d55-9f8e-a5caa82c394d
-
-### Closed-loop planning
-
-https://github.com/user-attachments/assets/5877b0ca-4844-4796-b77c-cf98e23cc146
 
 ## 🛠️ Get started
 
