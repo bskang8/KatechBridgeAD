@@ -17,6 +17,9 @@ End-to-end autonomous driving unifies tasks in a differentiable framework, enabl
 
 https://github.com/user-attachments/assets/2abbe46c-5fe7-4d55-9f8e-a5caa82c394d
 
+## News
+- 2025.04.07, the initial version of the code is released.
+
 ## 🛠️ Get started
 
 ### Environment & data
