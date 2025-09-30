@@ -26,12 +26,13 @@ for idx in tqdm(range(len(data_infos))):
 
 clusters = []
 for trajs in navi_trajs:
-    trajs = np.concatenate(trajs, axis=0).reshape(-1, 12)
-    cluster = KMeans(n_clusters=K).fit(trajs).cluster_centers_
-    cluster = cluster.reshape(-1, 6, 2)
-    clusters.append(cluster)
-    for j in range(K):
-        plt.scatter(cluster[j, :, 0], cluster[j, :,1])
+    if len(trajs) > 0 :
+        trajs = np.concatenate(trajs, axis=0).reshape(-1, 12)
+        cluster = KMeans(n_clusters=K).fit(trajs).cluster_centers_
+        cluster = cluster.reshape(-1, 6, 2)
+        clusters.append(cluster)
+        for j in range(K):
+            plt.scatter(cluster[j, :, 0], cluster[j, :,1])
 plt.savefig(f'vis/kmeans/plan_{K}', bbox_inches='tight')
 plt.close()
 
