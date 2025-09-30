@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ubuntu_gpu:
+    image: nvidia/cuda:11.6.1-cudnn8-devel-ubuntu20.04
+    container_name: BridgeAD_katech
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              device_ids: ["0,1,2,3"]
+              # `device_ids: ["all"]` isn’t officially supported in compose spec,
+              # but omitting device_ids will allow access to all GPUs
+    volumes:
+      - /home/sda/bskang/BridgeAD:/home/BridgeAD
+    environment:
+      - TZ=Asia/Seoul
+    shm_size: '16gb'
+    command: bash
+    tty: true
