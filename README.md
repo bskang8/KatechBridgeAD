@@ -50,3 +50,4 @@ sh scripts/test.sh
  - [Bench2Drive](https://github.com/Thinklab-SJTU/Bench2Drive)
  - [DeMo (Ours)](https://github.com/fudan-zvg/DeMo)
  - [RealMotion (Ours)](https://github.com/fudan-zvg/RealMotion)
+# KatechBridgeAD
