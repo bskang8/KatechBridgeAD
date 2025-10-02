@@ -78,8 +78,11 @@ class PlanningRefinementModule(BaseModule):
         bs, num_anchor = plan_query.shape[:2]
         
         plan_cls = self.plan_cls_branch(plan_query.mean(dim=-2)).squeeze(-1)
+
+        #print("plan_query shape:", plan_query.shape)
+        #print("plan_reg_branch:", self.plan_reg_branch(plan_query).shape)
         
-        plan_reg = self.plan_reg_branch(plan_query).reshape(bs, 1, 3 * self.ego_fut_mode, self.ego_fut_ts, 2)
+        plan_reg = self.plan_reg_branch(plan_query).reshape(bs, 1, 2 * self.ego_fut_mode, self.ego_fut_ts, 2)
         
         ego_status_feature = ego_feature + ego_anchor_embed
         planning_status = self.plan_status_branch(ego_status_feature)

@@ -276,6 +276,7 @@ def main():
             model.cuda(),
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False,
+            find_unused_parameters=True,
         )
         outputs = custom_multi_gpu_test(
             model, data_loader, args.tmpdir, args.gpu_collect
