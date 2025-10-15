@@ -7,10 +7,10 @@ import gzip
 import json 
 
 # replace your email and password in https://www.nuscenes.org/
-useremail = "bskang@katech.re.kr"
-password = "Dirthr7788!@"
+useremail = ""
+password = " "
 
-output_dir = "/home/BridgeAD/data"
+output_dir = "/home/BridgeAD/data_full"
 region = 'asia' # 'us' or 'asia'
 
 
@@ -161,14 +161,14 @@ def main():
         save_file = download_file(download_url,save_file,md5)
         download_data[output_name] = [download_url,save_file,md5]
 
-    print("Extracting files...")
-    for output_name,(download_url,save_file,md5) in download_data.items():
-        if output_name.endswith(".tgz"):
-            extract_tgz_to_original_folder(save_file)
-        elif output_name.endswith(".tar"):
-            extract_tar_to_original_folder(save_file)
-        else:
-            print("unknow file type",output_name)
+    # print("Extracting files...")
+    # for output_name,(download_url,save_file,md5) in download_data.items():
+    #     if output_name.endswith(".tgz"):
+    #         extract_tgz_to_original_folder(save_file)
+    #     elif output_name.endswith(".tar"):
+    #         extract_tar_to_original_folder(save_file)
+    #     else:
+    #         print("unknow file type",output_name)
 
     print("Done!")
 

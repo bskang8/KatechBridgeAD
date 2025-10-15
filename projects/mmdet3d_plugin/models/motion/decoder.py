@@ -130,8 +130,10 @@ class HierarchicalPlanningDecoder(object):
         classification = planning_output['classification'][-1]
         prediction = planning_output['prediction'][-1]
         bs = classification.shape[0]
-        classification = classification.reshape(bs, 2, self.ego_fut_mode)
-        prediction = prediction.reshape(bs, 2, self.ego_fut_mode, self.ego_fut_ts, 2).cumsum(dim=-2)
+        #classification = classification.reshape(bs, 3, self.ego_fut_mode)
+        classification = classification.reshape(bs, 3, -1)
+        #prediction = prediction.reshape(bs, 3, self.ego_fut_mode, self.ego_fut_ts, 2).cumsum(dim=-2)
+        prediction = prediction.reshape(bs, 3, -1, self.ego_fut_ts, 2).cumsum(dim=-2)
         classification, final_planning = self.select(det_output, motion_output, classification, prediction, data)
         anchor_queue = planning_output["anchor_queue"]
         anchor_queue = torch.stack(anchor_queue, dim=2)
@@ -168,9 +170,20 @@ class HierarchicalPlanningDecoder(object):
         bs = motion_cls.shape[0]
         bs_indices = torch.arange(bs, device=motion_cls.device)
         cmd = data['gt_ego_fut_cmd'].argmax(dim=-1)
+
+        # 인덱스 유효성 검사 추가
+        assert cmd.shape[0] == bs, f"Batch size mismatch: {cmd.shape[0]} != {bs}"
+        assert (cmd >= 0).all() and (cmd < plan_cls.shape[1]).all(), f"Invalid cmd values: {cmd}"
+
+
         plan_cls_full = plan_cls.detach().clone()
-        plan_cls = plan_cls[bs_indices, cmd]
-        plan_reg = plan_reg[bs_indices, cmd]
+        try:
+            plan_cls = plan_cls[bs_indices, cmd]
+            plan_reg = plan_reg[bs_indices, cmd]
+        except IndexError as e:
+            print(f"IndexError in select: bs_indices={bs_indices.shape}, cmd={cmd.shape}")
+            print(f"plan_cls shape: {plan_cls.shape}, plan_reg shape: {plan_reg.shape}")
+            raise
 
         # rescore
         if self.use_rescore:
@@ -182,9 +195,12 @@ class HierarchicalPlanningDecoder(object):
                 det_anchors,
                 det_confidence,
             )
+
         plan_cls_full[bs_indices, cmd] = plan_cls
         mode_idx = plan_cls.argmax(dim=-1)
         final_planning = plan_reg[bs_indices, mode_idx]
+
+
         return plan_cls_full, final_planning
 
     def rescore(
@@ -234,7 +250,9 @@ class HierarchicalPlanningDecoder(object):
         ## ego
         bs = plan_reg.shape[0]
         plan_reg_cat = cat_with_zero(plan_reg)
-        ego_box = det_anchors.new_zeros(bs, self.ego_fut_mode, self.ego_fut_ts + 1, 7)
+
+        ego_box = det_anchors.new_zeros(bs, self.ego_fut_mode-2, self.ego_fut_ts + 1, 7)
+        #ego_box = det_anchors.new_zeros(bs, -1, self.ego_fut_ts + 1, 7)
         ego_box[..., [X, Y]] = plan_reg_cat
         ego_box[..., [W, L, H]] = ego_box.new_tensor([4.08, 1.73, 1.56]) * dim_scale
         ego_box[..., [YAW]] = get_yaw(plan_reg_cat)
@@ -289,65 +307,35 @@ def check_collision(boxes1, boxes2):
     col_1 = corners_in_box(boxes1.clone(), boxes2.clone())
     col_2 = corners_in_box(boxes2.clone(), boxes1.clone())
     collision = torch.logical_or(col_1, col_2)
-
     return collision
 
 def corners_in_box(boxes1, boxes2):
     if  boxes1.shape[0] == 0 or boxes2.shape[0] == 0:
         return False
 
-    boxes1_yaw = torch.clamp(boxes1[:, 6].clone(), -2*np.pi, 2*np.pi)
+    boxes1_yaw = boxes1[:, 6].clone()
     boxes1_loc = boxes1[:, :3].clone()
-
     cos_yaw = torch.cos(-boxes1_yaw)
     sin_yaw = torch.sin(-boxes1_yaw)
-
-
-    invalid_mask = torch.isnan(cos_yaw) | torch.isnan(sin_yaw) | torch.isinf(cos_yaw) | torch.isinf(sin_yaw)
-    if invalid_mask.any():
-        cos_yaw = torch.where(invalid_mask, torch.ones_like(cos_yaw), cos_yaw)
-        sin_yaw = torch.where(invalid_mask, torch.zeros_like(sin_yaw), sin_yaw)
-    
     rot_mat_T = torch.stack(
         [
             torch.stack([cos_yaw, sin_yaw]),
             torch.stack([-sin_yaw, cos_yaw]),
         ]
     )
-    rot_mat_T = rot_mat_T.permute(2, 0, 1)  # Shape: [32400, 2, 2]
     # translate and rotate boxes
-    
-    # boxes1[:, :3] = boxes1[:, :3] - boxes1_loc
-    # boxes2[:, :3] = boxes2[:, :3] - boxes1_loc
-
-    boxes1_xy = boxes1[:, :2].clone() - boxes1_loc[:, :2] 
-    boxes2_xy = boxes2[:, :2].clone() - boxes1_loc[:, :2]
-
-    boxes1_xy = boxes1_xy.unsqueeze(1)  # Shape: [32400, 1, 2]
-    boxes2_xy = boxes2_xy.unsqueeze(1)  # Shape: [32400, 1, 2]
-
-
-    print('boxes1_xy: ', boxes1_xy.shape)
-    print('boxes2_xy: ', boxes2_xy.shape)
-    print('rot_mat_T: ', rot_mat_T.shape)
- 
-    # boxes1[:, :2] = torch.einsum('ij,jki->ik', boxes1_xy, rot_mat_T)
-    # boxes2[:, :2] = torch.einsum('ij,jki->ik', boxes2_xy, rot_mat_T)
-
-    boxes1[:, :2] = torch.bmm(boxes1_xy, rot_mat_T).squeeze(1)  # Shape: [32400, 2]
-    boxes2[:, :2] = torch.bmm(boxes2_xy, rot_mat_T).squeeze(1)  # Shape: [32400, 2]
-
-    # boxes1[:, :2] = torch.bmm(boxes1_xy.unsqueeze(1), rot_mat_T).squeeze(1)
-    # boxes2[:, :2] = torch.bmm(boxes2_xy.unsqueeze(1), rot_mat_T).squeeze(1)
-    
-
+    boxes1[:, :3] = boxes1[:, :3] - boxes1_loc
+    boxes1[:, :2] = torch.einsum('ij,jki->ik', boxes1[:, :2], rot_mat_T)
     boxes1[:, 6] = boxes1[:, 6] - boxes1_yaw
+
+    boxes2[:, :3] = boxes2[:, :3] - boxes1_loc
+    boxes2[:, :2] = torch.einsum('ij,jki->ik', boxes2[:, :2], rot_mat_T)
     boxes2[:, 6] = boxes2[:, 6] - boxes1_yaw
 
     corners_box2 = box3d_to_corners(boxes2)[:, [0, 3, 7, 4], :2]
     corners_box2 = torch.from_numpy(corners_box2).to(boxes2.device)
-    H = torch.clamp(boxes1[:, [3]], min=1e-6)  # 0으로 나누기 방지
-    W = torch.clamp(boxes1[:, [4]], min=1e-6)
+    H = boxes1[:, [3]]
+    W = boxes1[:, [4]]
 
     collision = torch.logical_and(
         torch.logical_and(corners_box2[..., 0] <= H / 2, corners_box2[..., 0] >= -H / 2),
