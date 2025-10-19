@@ -95,10 +95,10 @@ class PlanningTarget():
         bs_indices = torch.arange(bs, device=reg_pred.device)
         cmd = data['gt_ego_fut_cmd'].argmax(dim=-1)
 
-        cls_pred = cls_pred.reshape(bs, 3, 1, self.ego_fut_mode)
+        #cls_pred = cls_pred.reshape(bs, 3, 1, self.ego_fut_mode)
         #reg_pred = reg_pred.reshape(bs, 3, 1, self.ego_fut_mode, self.ego_fut_ts, 2)
 
-        #cls_pred = cls_pred.reshape(bs, 3, 1, -1)
+        cls_pred = cls_pred.reshape(bs, 3, 1, -1)
         reg_pred = reg_pred.reshape(bs, 3, 1, -1, self.ego_fut_ts, 2)
 
 
