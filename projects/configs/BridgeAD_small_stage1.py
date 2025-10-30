@@ -1,6 +1,6 @@
 # ================ base config ===================
-version = 'mini'
-#version = 'trainval'
+#version = 'mini'
+version = 'trainval'
 length = {'trainval': 28130, 'mini': 323}
 
 plugin = True
@@ -9,7 +9,7 @@ dist_params = dict(backend="nccl")
 log_level = "INFO"
 work_dir = None
 
-total_batch_size = 64
+total_batch_size = 32
 num_gpus = 8
 batch_size = total_batch_size // num_gpus
 num_iters_per_epoch = int(length[version] // (num_gpus * batch_size))
@@ -776,7 +776,7 @@ data = dict(
 # ================== training ========================
 optimizer = dict(
     type="AdamW",
-    lr=4e-4,
+    lr=1e-4,
     weight_decay=0.001,
     paramwise_cfg=dict(
         custom_keys={
@@ -784,7 +784,7 @@ optimizer = dict(
         }
     ),
 )
-optimizer_config = dict(grad_clip=dict(max_norm=25, norm_type=2))
+optimizer_config = dict(grad_clip=dict(max_norm=0.5, norm_type=2))
 lr_config = dict(
     policy="CosineAnnealing",
     warmup="linear",

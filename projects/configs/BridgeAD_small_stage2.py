@@ -1,6 +1,6 @@
 # ================ base config ===================
-version = 'mini'
-#version = 'trainval'
+#version = 'mini'
+version = 'trainval'
 length = {'trainval': 28130, 'mini': 323}
 
 plugin = True
@@ -9,8 +9,8 @@ dist_params = dict(backend="nccl")
 log_level = "INFO"
 work_dir = None
 
-total_batch_size = 16
-num_gpus = 4
+total_batch_size = 2
+num_gpus = 2
 batch_size = total_batch_size // num_gpus
 num_iters_per_epoch = int(length[version] // (num_gpus * batch_size))
 
@@ -18,7 +18,9 @@ num_epochs = 14
 checkpoint_epoch_interval = 14
 
 checkpoint_config = dict(
-    interval=num_iters_per_epoch * checkpoint_epoch_interval
+    interval= 1000, # num_iters_per_epoch * checkpoint_epoch_interval
+    by_epoch=False, 
+    max_keep_ckpts=5  
 )
 log_config = dict(
     interval=51,
@@ -784,7 +786,7 @@ optimizer = dict(
         }
     ),
 )
-optimizer_config = dict(grad_clip=dict(max_norm=25, norm_type=2))
+optimizer_config = dict(grad_clip=dict(max_norm=0.5, norm_type=2))
 lr_config = dict(
     policy="CosineAnnealing",
     warmup="linear",
@@ -813,4 +815,4 @@ evaluation = dict(
 )
 
 # ================== pretrained model ========================
-load_from = 'work_dirs/your_path_stage1.pth'
+load_from = 'work_dirs/stage1_full_251021/latest.pth'
